@@ -2,9 +2,7 @@
 
 Una aplicación web avanzada para la generación de cartas solares estereográficas y el cálculo de inclinación óptima de paneles fotovoltaicos. Diseñada con fines educativos y profesionales, permite alternar entre modelos académicos simplificados y algoritmos de ingeniería.
 
-🔗 **[Ver Demo en Vivo](https://tu-usuario.github.io/tu-repositorio/)**
-
-*(Sustituye este enlace con una captura real de tu aplicación cuando la subas)*
+🔗 **[Ver Demo en Vivo](https://rafasalaesteve.github.io/calculadora-solar/)**
 
 ## 🚀 Características Principales
 
