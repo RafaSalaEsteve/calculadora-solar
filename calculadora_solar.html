@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarCalc Pro | Ingeniería Fotovoltaica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Header Profesional -->
+    <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-50">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-solar-panel text-yellow-400 text-2xl"></i>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">SolarCalc <span class="text-yellow-400">Pro</span></h1>
+                    <p class="text-xs text-slate-400 font-mono">V.2.0 ENGINEERING BUILD</p>
+                </div>
+            </div>
+            <a href="https://github.com/tuusuario/solarcalc" target="_blank" class="text-sm text-slate-300 hover:text-white transition">
+                <i class="fa-brands fa-github text-lg"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8 max-w-6xl">
+        
+        <!-- Panel de Control Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+            
+            <!-- Inputs y Configuración -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Tarjeta de Ubicación -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4"><i class="fa-solid fa-location-dot mr-2"></i>Parámetros de Ubicación</h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">LATITUD (°N)</label>
+                            <input type="number" id="latInput" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-mono" placeholder="40.41" value="40.41">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">LONGITUD (°O)</label>
+                            <input type="number" id="lonInput" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 font-mono" placeholder="-3.70" value="-3.70">
+                        </div>
+                        
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="getUserLocation()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 px-4 rounded-lg transition text-sm border border-slate-300">
+                                <i class="fa-solid fa-crosshairs mr-1"></i> GPS
+                            </button>
+                            <button onclick="calculateData()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-lg shadow-blue-500/30 text-sm">
+                                <i class="fa-solid fa-calculator mr-1"></i> CALCULAR
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarjeta de Modo de Cálculo -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 opacity-10">
+                        <i class="fa-solid fa-gear text-6xl"></i>
+                    </div>
+                    <h2 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4"><i class="fa-solid fa-sliders mr-2"></i>Algoritmo de Cálculo</h2>
+                    
+                    <div class="flex bg-slate-100 p-1 rounded-lg mb-4">
+                        <button id="btnSchool" onclick="setMode('school')" class="flex-1 py-2 px-3 rounded-md text-xs font-bold transition bg-white text-blue-600 shadow-sm">
+                            Escolar (Tarea)
+                        </button>
+                        <button id="btnPro" onclick="setMode('pro')" class="flex-1 py-2 px-3 rounded-md text-xs font-bold transition text-slate-500 hover:text-slate-700">
+                            Profesional (Ing.)
+                        </button>
+                    </div>
+
+                    <p id="modeDesc" class="text-xs text-slate-500 leading-relaxed">
+                        <i class="fa-solid fa-info-circle mr-1"></i> 
+                        <strong>Modo Escolar:</strong> Utiliza las simplificaciones de la práctica (Lat+10 / Lat-20). Ideal para entregar el trabajo.
+                    </p>
+                </div>
+
+                <!-- Estado Solar Actual (Tiempo Real) -->
+                <div class="bg-slate-800 text-white rounded-xl shadow-lg p-6 border border-slate-700">
+                    <h2 class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-4 flex justify-between">
+                        <span><i class="fa-regular fa-clock mr-2"></i>Tiempo Real</span>
+                        <span id="currentDate" class="text-slate-400 font-mono">--/--/--</span>
+                    </h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-slate-400">Elevación Actual</div>
+                            <div class="text-2xl font-mono font-bold text-yellow-400" id="liveElev">--°</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-slate-400">Azimut Actual</div>
+                            <div class="text-2xl font-mono font-bold text-yellow-400" id="liveAzim">--°</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Visualización Gráfica -->
+            <div class="lg:col-span-8 bg-white rounded-xl shadow-sm border border-slate-200 p-1 flex flex-col">
+                 <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-xl">
+                    <h3 class="font-bold text-slate-700"><i class="fa-solid fa-chart-pie mr-2 text-blue-500"></i>Carta Solar Estereográfica</h3>
+                    <button onclick="downloadChart()" class="text-xs bg-white border border-slate-300 hover:bg-slate-50 text-slate-600 px-3 py-1 rounded transition">
+                        <i class="fa-solid fa-download mr-1"></i> PNG
+                    </button>
+                </div>
+                <div class="relative flex-grow min-h-[400px] flex items-center justify-center p-4">
+                    <canvas id="solarChart" width="800" height="800" class="max-h-[500px] w-auto"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Sección de Resultados Técnicos -->
+        <div id="resultsSection" class="hidden animate-fade-in">
+            <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                <i class="fa-solid fa-file-contract mr-3 text-blue-600"></i> Informe Técnico de Inclinación
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Tarjeta Invierno -->
+                <div class="bg-white p-6 rounded-xl border-l-4 border-blue-500 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute right-0 top-0 opacity-5 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-snowflake text-8xl text-blue-900"></i>
+                    </div>
+                    <div class="text-xs font-bold text-blue-600 uppercase mb-2">Periodo Invierno</div>
+                    <div class="text-4xl font-bold text-slate-800 mb-1" id="resWinter">--°</div>
+                    <div class="text-xs text-slate-500 font-mono" id="formulaWinter">Fórmula: Lat + 10°</div>
+                    <p class="text-sm text-slate-600 mt-4 leading-snug">
+                        Maximiza la captación cuando el sol está en su punto más bajo (Solsticio de Diciembre).
+                    </p>
+                </div>
+
+                <!-- Tarjeta Anual -->
+                <div class="bg-white p-6 rounded-xl border-l-4 border-green-500 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute right-0 top-0 opacity-5 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-calendar-check text-8xl text-green-900"></i>
+                    </div>
+                    <div class="text-xs font-bold text-green-600 uppercase mb-2">Producción Anual</div>
+                    <div class="text-4xl font-bold text-slate-800 mb-1" id="resYear">--°</div>
+                    <div class="text-xs text-slate-500 font-mono" id="formulaYear">Fórmula: Latitud</div>
+                    <p class="text-sm text-slate-600 mt-4 leading-snug">
+                        Equilibrio geométrico. En modo PRO se ajusta para priorizar la radiación directa anual.
+                    </p>
+                </div>
+
+                <!-- Tarjeta Verano -->
+                <div class="bg-white p-6 rounded-xl border-l-4 border-orange-500 shadow-sm relative overflow-hidden group hover:shadow-md transition">
+                    <div class="absolute right-0 top-0 opacity-5 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition">
+                        <i class="fa-solid fa-sun text-8xl text-orange-900"></i>
+                    </div>
+                    <div class="text-xs font-bold text-orange-600 uppercase mb-2">Periodo Verano</div>
+                    <div class="text-4xl font-bold text-slate-800 mb-1" id="resSummer">--°</div>
+                    <div class="text-xs text-slate-500 font-mono" id="formulaSummer">Fórmula: Lat - 20°</div>
+                    <p class="text-sm text-slate-600 mt-4 leading-snug">
+                        Posición casi horizontal para captar el sol cercano al Cenit (Solsticio de Junio).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Justificación Técnica -->
+            <div class="bg-slate-50 border border-slate-200 rounded-xl p-8">
+                <h4 class="font-bold text-slate-800 mb-4">Análisis de Elevación Solar (Cenit)</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="text-xs text-slate-700 uppercase bg-slate-200">
+                            <tr>
+                                <th class="px-6 py-3 rounded-l-lg">Evento</th>
+                                <th class="px-6 py-3">Fecha Aprox.</th>
+                                <th class="px-6 py-3">Elevación Max (Mediodía)</th>
+                                <th class="px-6 py-3 rounded-r-lg">Ángulo perpendicular (90° - Elev)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="bg-white border-b">
+                                <td class="px-6 py-4 font-medium text-slate-900">Solsticio Verano</td>
+                                <td class="px-6 py-4">21 Junio</td>
+                                <td class="px-6 py-4 font-mono text-blue-600" id="tableElevSummer">--°</td>
+                                <td class="px-6 py-4 font-mono text-slate-900 font-bold" id="tableAngleSummer">--°</td>
+                            </tr>
+                            <tr class="bg-white border-b">
+                                <td class="px-6 py-4 font-medium text-slate-900">Equinoccios</td>
+                                <td class="px-6 py-4">21 Mar / 21 Sep</td>
+                                <td class="px-6 py-4 font-mono text-blue-600" id="tableElevEq">--°</td>
+                                <td class="px-6 py-4 font-mono text-slate-900 font-bold" id="tableAngleEq">--°</td>
+                            </tr>
+                            <tr class="bg-white">
+                                <td class="px-6 py-4 font-medium text-slate-900">Solsticio Invierno</td>
+                                <td class="px-6 py-4">21 Diciembre</td>
+                                <td class="px-6 py-4 font-mono text-blue-600" id="tableElevWinter">--°</td>
+                                <td class="px-6 py-4 font-mono text-slate-900 font-bold" id="tableAngleWinter">--°</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-500 mt-4 italic">
+                    * Nota: El ángulo perpendicular es el óptimo geométrico puro. Los valores recomendados arriba incluyen factores de corrección por suciedad y dispersión atmosférica.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 mt-12 text-center text-sm border-t border-slate-800">
+        <div class="container mx-auto">
+            <p class="font-semibold text-slate-200">SolarCalc Pro</p>
+            <p class="mt-2">Desarrollado para Ingeniería y Formación Técnica.</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- CONSTANTES Y ESTADO ---
+        let currentMode = 'school'; // 'school' o 'pro'
+        
+        // --- FUNCIONES MATEMÁTICAS ---
+        const toRad = deg => deg * (Math.PI / 180);
+        const toDeg = rad => rad * (180 / Math.PI);
+
+        // Algoritmo de Cooper (1969) para Declinación
+        const getDeclination = dayOfYear => 23.45 * Math.sin(toRad(360 * (284 + dayOfYear) / 365));
+
+        // Calcular posición solar exacta
+        function calculateSolarPos(lat, declination, hourAngle) {
+            const latRad = toRad(lat);
+            const decRad = toRad(declination);
+            const haRad = toRad(hourAngle);
+
+            const sinElev = Math.sin(decRad) * Math.sin(latRad) + 
+                            Math.cos(decRad) * Math.cos(latRad) * Math.cos(haRad);
+            let elev = toDeg(Math.asin(sinElev));
+            
+            // Azimut fórmula estándar desde el SUR
+            let cosAz = (Math.sin(decRad) - Math.sin(toRad(elev)) * Math.sin(latRad)) /
+                        (Math.cos(toRad(elev)) * Math.cos(latRad));
+            cosAz = Math.max(-1, Math.min(1, cosAz)); // Clamping
+            let az = toDeg(Math.acos(cosAz));
+
+            // Convertir a criterio N=0, E=90, S=180, O=270
+            // La fórmula cosAz da el ángulo desde el Sur.
+            // Si hourAngle > 0 (tarde), el azimut es hacia el Oeste.
+            
+            // Ajuste simple visualización:
+            // Queremos Azimut 180 = Sur. 
+            // Si HA < 0 (mañana), Azimut = 180 - az_calc
+            // Si HA > 0 (tarde), Azimut = 180 + az_calc
+            
+            let displayAz;
+            if (Math.sin(haRad) >= 0) { // Tarde
+                 displayAz = 180 + az;
+            } else { // Mañana
+                 displayAz = 180 - az;
+            }
+
+            return { elev: elev, azim: displayAz };
+        }
+
+        // --- LÓGICA DE UI ---
+
+        function setMode(mode) {
+            currentMode = mode;
+            const btnSchool = document.getElementById('btnSchool');
+            const btnPro = document.getElementById('btnPro');
+            const desc = document.getElementById('modeDesc');
+
+            if (mode === 'school') {
+                btnSchool.className = "flex-1 py-2 px-3 rounded-md text-xs font-bold transition bg-white text-blue-600 shadow-sm";
+                btnPro.className = "flex-1 py-2 px-3 rounded-md text-xs font-bold transition text-slate-500 hover:text-slate-700";
+                desc.innerHTML = `<i class="fa-solid fa-graduation-cap mr-1"></i> <strong>Modo Escolar:</strong> Sigue estrictamente el enunciado de tu práctica: <code>Latitud + 10</code> (Invierno) y <code>Latitud - 20</code> (Verano).`;
+            } else {
+                btnPro.className = "flex-1 py-2 px-3 rounded-md text-xs font-bold transition bg-white text-blue-600 shadow-sm";
+                btnSchool.className = "flex-1 py-2 px-3 rounded-md text-xs font-bold transition text-slate-500 hover:text-slate-700";
+                desc.innerHTML = `<i class="fa-solid fa-briefcase mr-1"></i> <strong>Modo Profesional:</strong> Usa el <em>Método de Lewis</em> y factores de corrección de irradiación difusa. Invierno: <code>Latitud + 15°</code>.`;
+            }
+            
+            // Recalcular si ya hay datos
+            if(document.getElementById('resultsSection').classList.contains('hidden') === false) {
+                calculateData();
+            }
+        }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    document.getElementById('latInput').value = position.coords.latitude.toFixed(4);
+                    document.getElementById('lonInput').value = position.coords.longitude.toFixed(4);
+                    calculateData();
+                });
+            } else {
+                alert("Geolocalización no disponible.");
+            }
+        }
+
+        function calculateData() {
+            const lat = parseFloat(document.getElementById('latInput').value);
+            
+            if (isNaN(lat)) { alert("Introduce una latitud válida"); return; }
+            const absLat = Math.abs(lat);
+
+            // 1. CÁLCULOS SEGÚN MODO
+            let tiltW, tiltS, tiltY;
+            let formW, formS, formY;
+
+            if (currentMode === 'school') {
+                // Fórmulas de la Práctica
+                tiltY = absLat;
+                tiltW = absLat + 10;
+                tiltS = absLat - 20;
+                
+                formY = "Latitud";
+                formW = "Latitud + 10°";
+                formS = "Latitud - 20°";
+            } else {
+                // Fórmulas Profesionales (Ingeniería - Lewis / Autosolar Technical)
+                // Anual: Se suele restar 10-15% a la latitud para favorecer verano donde hay más horas
+                tiltY = absLat * 0.87; 
+                if (absLat < 10) tiltY = absLat; // Cerca ecuador es casi plano
+
+                // Invierno: Lat + 15 (Estándar industria)
+                tiltW = absLat + 15;
+                
+                // Verano: Lat - 15 (Estándar industria)
+                tiltS = absLat - 15;
+
+                formY = "Latitud × 0.87 (Optim. Anual)";
+                formW = "Latitud + 15° (Método Lewis)";
+                formS = "Latitud - 15°";
+            }
+
+            // Sanitizar
+            if(tiltS < 0) tiltS = 0;
+            if(tiltW > 90) tiltW = 90;
+
+            // Actualizar DOM Resultados
+            document.getElementById('resYear').innerText = tiltY.toFixed(1) + "°";
+            document.getElementById('resWinter').innerText = tiltW.toFixed(1) + "°";
+            document.getElementById('resSummer').innerText = tiltS.toFixed(1) + "°";
+            
+            document.getElementById('formulaYear').innerText = formY;
+            document.getElementById('formulaWinter').innerText = formW;
+            document.getElementById('formulaSummer').innerText = formS;
+
+            // 2. DATOS DE TABLA TÉCNICA (Geometría pura)
+            const maxElevS = 90 - (absLat - 23.45);
+            const maxElevW = 90 - (absLat + 23.45);
+            const maxElevE = 90 - absLat;
+
+            document.getElementById('tableElevSummer').innerText = maxElevS.toFixed(1) + "°";
+            document.getElementById('tableAngleSummer').innerText = (90 - maxElevS).toFixed(1) + "°";
+            
+            document.getElementById('tableElevWinter').innerText = maxElevW.toFixed(1) + "°";
+            document.getElementById('tableAngleWinter').innerText = (90 - maxElevW).toFixed(1) + "°";
+            
+            document.getElementById('tableElevEq').innerText = maxElevE.toFixed(1) + "°";
+            document.getElementById('tableAngleEq').innerText = (90 - maxElevE).toFixed(1) + "°";
+
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            // 3. DIBUJAR GRÁFICO
+            drawChart(lat);
+            
+            // 4. DATOS TIEMPO REAL
+            updateLiveData(lat);
+        }
+
+        function updateLiveData(lat) {
+            const now = new Date();
+            const start = new Date(now.getFullYear(), 0, 0);
+            const diff = now - start;
+            const oneDay = 1000 * 60 * 60 * 24;
+            const dayOfYear = Math.floor(diff / oneDay);
+            
+            // Calculo simplificado de hora solar (asumiendo UTC aprox para demo)
+            // En una app real se ajustaría por longitud y ecuación del tiempo
+            const hour = now.getHours() + now.getMinutes()/60;
+            const solarHourAngle = (hour - 12) * 15; 
+
+            const dec = getDeclination(dayOfYear);
+            const pos = calculateSolarPos(lat, dec, solarHourAngle);
+
+            document.getElementById('currentDate').innerText = now.toLocaleDateString();
+            
+            if (pos.elev < 0) {
+                document.getElementById('liveElev').innerText = "Noche";
+                document.getElementById('liveElev').classList.replace("text-yellow-400", "text-slate-600");
+            } else {
+                document.getElementById('liveElev').innerText = pos.elev.toFixed(1) + "°";
+                document.getElementById('liveElev').classList.replace("text-slate-600", "text-yellow-400");
+            }
+            document.getElementById('liveAzim').innerText = pos.azim.toFixed(1) + "°";
+        }
+
+        // --- RENDERING CANVAS ---
+        function drawChart(lat) {
+            const canvas = document.getElementById('solarChart');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w/2;
+            const cy = h/2;
+            const r = w * 0.45;
+
+            // Fondo
+            ctx.clearRect(0,0,w,h);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0,0,w,h);
+
+            // Rejilla Polar
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 1;
+            
+            // Círculos Elevación
+            for(let i=0; i<=90; i+=10) {
+                ctx.beginPath();
+                let rad = r * (1 - i/90);
+                ctx.arc(cx, cy, rad, 0, Math.PI*2);
+                ctx.stroke();
+                // Texto
+                if(i%30 === 0 && i!==90) {
+                    ctx.fillStyle = "#94a3b8";
+                    ctx.font = "12px Inter";
+                    ctx.fillText(i+"°", cx+2, cy - rad + 12);
+                }
+            }
+
+            // Líneas Azimut
+            for(let a=0; a<360; a+=15) {
+                ctx.beginPath();
+                let rad = toRad(a - 90); 
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + r*Math.cos(rad), cy + r*Math.sin(rad));
+                ctx.stroke();
+            }
+
+            // Cardinales
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "bold 24px Inter";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("N", cx, cy - r - 25);
+            ctx.fillText("S", cx, cy + r + 25);
+            ctx.fillText("E", cx + r + 25, cy);
+            ctx.fillText("O", cx - r - 25, cy);
+
+            // TRAYECTORIAS
+            const dates = [
+                {d: 172, c: "#f59e0b", name: "Verano"}, // Jun
+                {d: 80, c: "#10b981", name: "Equinoccio"}, // Mar
+                {d: 355, c: "#3b82f6", name: "Invierno"} // Dic
+            ];
+
+            dates.forEach(date => {
+                const dec = getDeclination(date.d);
+                ctx.beginPath();
+                ctx.strokeStyle = date.c;
+                ctx.lineWidth = 3;
+                
+                let points = [];
+                for(let h=-180; h<=180; h+=2) {
+                    let p = calculateSolarPos(lat, dec, h);
+                    if(p.elev > 0) {
+                        let rad = r * (1 - p.elev/90);
+                        // Ajuste Azimut a Canvas: 
+                        // Azimut 0 (N) -> -90 deg
+                        // Azimut 90 (E) -> 0 deg
+                        // Azimut 180 (S) -> 90 deg
+                        // Formula: Angle = Azimut - 90
+                        let angle = toRad(p.azim - 90);
+                        
+                        let x = cx + rad * Math.cos(angle);
+                        let y = cy + rad * Math.sin(angle);
+                        points.push({x,y});
+                    }
+                }
+
+                if(points.length > 0) {
+                    ctx.moveTo(points[0].x, points[0].y);
+                    points.forEach(p => ctx.lineTo(p.x, p.y));
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function downloadChart() {
+            const link = document.createElement('a');
+            link.download = 'SolarCalc_Chart.png';
+            link.href = document.getElementById('solarChart').toDataURL();
+            link.click();
+        }
+
+        // Init Default
+        setMode('school');
+    </script>
+</body>
+</html>
